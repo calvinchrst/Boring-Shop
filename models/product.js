@@ -18,7 +18,11 @@ const getProducts = (cb) => {
 
 module.exports = class Product {
     constructor(title) {
-        this.title = title;
+        getProducts((products) => {
+            // getProducts will read all products from the file
+            this.title = title;
+            this.id = products.length;
+        })
     }
 
     save() {
@@ -37,5 +41,18 @@ module.exports = class Product {
 
     static fetchAll(cb) {
         getProducts(cb);
+    }
+
+    static getProduct(targetProductId, cb) {
+        getProducts((products) => {
+            var product
+            for (product of products) {
+                if (product.id == targetProductId) {
+                    cb(product);
+                }
+            }
+            
+            console.log("Error: ProductId", targetProductId, "not found")
+        });
     }
 }
