@@ -34,8 +34,18 @@ exports.getCart = (req, res, next) => {
     products = Product.fetchAll((products) => {
         res.render('shop/cart', {
             prods: products,
-            docTitle: 'Cart',
+            docTitle: 'Your carts',
             path: "/cart"
+        }); 
+    });
+}
+
+exports.getOrders = (req, res, next) => {
+    products = Product.fetchAll((products) => {
+        res.render('shop/orders', {
+            prods: products,
+            docTitle: 'Your orders',
+            path: "/orders"
         }); 
     });
 }
