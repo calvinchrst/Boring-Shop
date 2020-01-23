@@ -18,20 +18,32 @@ const getProductsFromFile = cb => {
 };
 
 module.exports = class Product {
-  constructor(title, imageUrl, description, price) {
+  constructor(id, title, imageUrl, description, price) {
     getProductsFromFile((products) => {
       this.title = title;
       this.imageUrl = imageUrl;
       this.description = description;
       this.price = price;
-      this.id = products.length;
+      this.id = id == null ? products.length : id;
     });
   }
 
   save() {
     getProductsFromFile(products => {
-      products.push(this);
-      fs.writeFile(p, JSON.stringify(products), err => {
+      // If id is an existing id, then we replace existing product with THIS new product
+      // Else we add THIS new product
+      const existingProductIndex = products.findIndex(p => p.id == this.id);
+      let updatedProducts;
+      if (existingProductIndex != -1) {     // Existing product found
+        updatedProducts = [...products];
+        updatedProducts[existingProductIndex] = this;
+      } else {    // No existing product found
+        updatedProducts = products;
+        updatedProducts.push(this);
+      }
+
+      // Save it to file
+      fs.writeFile(p, JSON.stringify(updatedProducts), err => {
         console.log(err);
       });
     });
