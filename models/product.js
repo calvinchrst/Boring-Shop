@@ -19,13 +19,11 @@ const getProductsFromFile = cb => {
 
 module.exports = class Product {
   constructor(id, title, imageUrl, description, price) {
-    getProductsFromFile((products) => {
-      this.title = title;
-      this.imageUrl = imageUrl;
-      this.description = description;
-      this.price = price;
-      this.id = id == null ? products.length : id;
-    });
+    this.title = title;
+    this.imageUrl = imageUrl;
+    this.description = description;
+    this.price = price;
+    this.id = (id == null) ? Math.random() : id;
   }
 
   save() {
@@ -43,9 +41,7 @@ module.exports = class Product {
       }
 
       // Save it to file
-      fs.writeFile(p, JSON.stringify(updatedProducts), err => {
-        console.log(err);
-      });
+      Product.saveProducts(updatedProducts);
     });
   }
 
@@ -57,6 +53,19 @@ module.exports = class Product {
     getProductsFromFile(products => {
       const product = products.find(p => p.id == id);
       cb(product);
+    });
+  }
+
+  static deletedById(id) {
+    getProductsFromFile(products => {
+      const updatedProducts = products.filter(p => p.id != id);
+      Product.saveProducts(updatedProducts);
+    });
+  }
+
+  static saveProducts(products) {
+    fs.writeFile(p, JSON.stringify(products), err => {
+      console.log(err);
     });
   }
 };
