@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const Cart = require('../models/cart');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -52,10 +53,13 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   productId = req.body.productId;
-  console.log("postDeleteProduct", productId);
-  Product.deletedById(productId);
-  
-  res.redirect('/admin/products');
+  Product.findById(productId, product => {
+    if (product) {
+      Product.deletedById(productId);
+      Cart.deleteProduct(productId, product.price)
+      res.redirect('/admin/products');
+    }     // else do nothing if product is not found
+  });
 }
 
 exports.getProducts = (req, res, next) => {
