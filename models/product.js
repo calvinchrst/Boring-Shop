@@ -7,16 +7,6 @@ const p = path.join(
   'products.json'
 );
 
-const getProductsFromFile = cb => {
-  fs.readFile(p, (err, fileContent) => {
-    if (err) {
-      cb([]);
-    } else {
-      cb(JSON.parse(fileContent));
-    }
-  });
-};
-
 module.exports = class Product {
   constructor(id, title, imageUrl, description, price) {
     this.title = title;
@@ -26,8 +16,18 @@ module.exports = class Product {
     this.id = (id == null) ? Math.random() : id;
   }
 
+  static getProductsFromFile(cb) {
+    fs.readFile(p, (err, fileContent) => {
+      if (err) {
+        cb([]);
+      } else {
+        cb(JSON.parse(fileContent));
+      }
+    });
+  }
+
   save() {
-    getProductsFromFile(products => {
+    Product.getProductsFromFile(products => {
       // If id is an existing id, then we replace existing product with THIS new product
       // Else we add THIS new product
       const existingProductIndex = products.findIndex(p => p.id == this.id);
@@ -46,18 +46,18 @@ module.exports = class Product {
   }
 
   static fetchAll(cb) {
-    getProductsFromFile(cb);
+    Product.getProductsFromFile(cb);
   }
 
   static findById(id, cb) {
-    getProductsFromFile(products => {
+    Product.getProductsFromFile(products => {
       const product = products.find(p => p.id == id);
       cb(product);
     });
   }
 
   static deletedById(id) {
-    getProductsFromFile(products => {
+    Product.getProductsFromFile(products => {
       const updatedProducts = products.filter(p => p.id != id);
       Product.saveProducts(updatedProducts);
     });
