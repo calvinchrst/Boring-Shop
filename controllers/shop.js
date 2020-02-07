@@ -58,6 +58,21 @@ exports.postCart = (req, res, next) => {
   res.redirect('/cart');
 };
 
+exports.postCartDeleteItem = (req, res, next) => {
+  const productId = req.body.productId;
+  Product.findById(productId, (product) => {
+    if (product) {
+      Cart.deleteProduct(productId, product.price);
+      res.redirect('/cart');
+    }
+    else
+    {
+      console.log('PRODUCT TO DELETE NOT FOUND');
+      res.redirect('/cart');
+    }
+  });
+}
+
 exports.getOrders = (req, res, next) => {
   res.render('shop/orders', {
     path: '/orders',
