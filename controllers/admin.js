@@ -79,10 +79,10 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
-    .then(([rows, fieldData]) => {
+  Product.findAll()
+    .then(products => {
       res.render("admin/products", {
-        prods: rows,
+        prods: products,
         pageTitle: "Admin Products",
         path: "/admin/products"
       });
