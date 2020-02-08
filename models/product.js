@@ -1,11 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const p = path.join(
-  path.dirname(process.mainModule.filename),
-  'data',
-  'products.json'
-);
+const db = require('../util/database');
 
 module.exports = class Product {
   constructor(id, title, imageUrl, description, price) {
@@ -16,56 +9,28 @@ module.exports = class Product {
     this.id = (id == null) ? Math.random() : id;
   }
 
-  static getProductsFromFile(cb) {
-    fs.readFile(p, (err, fileContent) => {
-      if (err) {
-        cb([]);
-      } else {
-        cb(JSON.parse(fileContent));
-      }
-    });
-  }
-
   save() {
-    Product.getProductsFromFile(products => {
-      // If id is an existing id, then we replace existing product with THIS new product
-      // Else we add THIS new product
-      const existingProductIndex = products.findIndex(p => p.id == this.id);
-      let updatedProducts;
-      if (existingProductIndex != -1) {     // Existing product found
-        updatedProducts = [...products];
-        updatedProducts[existingProductIndex] = this;
-      } else {    // No existing product found
-        updatedProducts = products;
-        updatedProducts.push(this);
-      }
-
-      // Save it to file
-      Product.saveProducts(updatedProducts);
-    });
+    return db.execute(
+      'INSERT INTO products (title, price, imageUrl, description) VALUES (?, ?, ?, ?)',
+      [this.title, this.price, this.imageUrl, this.description] 
+    );
   }
 
-  static fetchAll(cb) {
-    Product.getProductsFromFile(cb);
+  static fetchAll() {
+    return db.execute('SELECT * FROM products');
   }
 
-  static findById(id, cb) {
-    Product.getProductsFromFile(products => {
-      const product = products.find(p => p.id == id);
-      cb(product);
-    });
+  static findById(id) {
+    console.log(id);
+    return db.execute(
+      'SELECT * FROM products WHERE products.id = ?',
+      [id]
+    );
   }
 
   static deletedById(id) {
-    Product.getProductsFromFile(products => {
-      const updatedProducts = products.filter(p => p.id != id);
-      Product.saveProducts(updatedProducts);
-    });
   }
 
   static saveProducts(products) {
-    fs.writeFile(p, JSON.stringify(products), err => {
-      console.log(err);
-    });
   }
-};
+}
