@@ -36,18 +36,18 @@ exports.getEditProduct = (req, res, next) => {
   }
 
   const prodId = req.params.productId;
-  Product.findById(prodId, product => {
-    if (!product) {
-      return res.redirect("/");
-    }
-
-    res.render("admin/edit-product", {
-      pageTitle: "Edit Product",
-      path: "/admin/edit-product",
-      product: product,
-      editMode: editMode
+  Product.findByPk(prodId)
+    .then(product => {
+      res.render("admin/edit-product", {
+        pageTitle: "Edit Product",
+        path: "/admin/edit-product",
+        product: product,
+        editMode: editMode
+      });
+    })
+    .catch(err => {
+      console.log(err);
     });
-  });
 };
 
 exports.postEditProduct = (req, res, next) => {
@@ -56,15 +56,21 @@ exports.postEditProduct = (req, res, next) => {
   updatedImageUrl = req.body.imageUrl;
   updatedDesc = req.body.description;
   updatedPrice = req.body.price;
-  newProduct = new Product(
-    productId,
-    updatedTitle,
-    updatedImageUrl,
-    updatedDesc,
-    updatedPrice
-  );
-  newProduct.save();
-  res.redirect("/admin/products");
+  Product.findByPk(productId)
+    .then(product => {
+      product.title = updatedTitle;
+      product.imageUrl = updatedImageUrl;
+      product.description = updatedDesc;
+      product.price = updatedPrice;
+      return product.save();
+    })
+    .then(result => {
+      // This second then is required so that the previous product.save if returns any error, will be catched by the outer catch block
+      res.redirect("/admin/products");
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };
 
 exports.postDeleteProduct = (req, res, next) => {
