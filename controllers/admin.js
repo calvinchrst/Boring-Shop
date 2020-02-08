@@ -75,13 +75,16 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   productId = req.body.productId;
-  Product.findById(productId, product => {
-    if (product) {
-      Product.deletedById(productId);
-      Cart.deleteProduct(productId, product.price);
+  Product.findByPk(productId)
+    .then(product => {
+      return product.destroy();
+    })
+    .then(result => {
       res.redirect("/admin/products");
-    } // else do nothing if product is not found
-  });
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };
 
 exports.getProducts = (req, res, next) => {
