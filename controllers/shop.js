@@ -99,15 +99,28 @@ exports.postCart = (req, res, next) => {
 
 exports.postCartDeleteItem = (req, res, next) => {
   const productId = req.body.productId;
-  Product.findById(productId, product => {
-    if (product) {
-      Cart.deleteProduct(productId, product.price);
+  req.user
+    .getCart()
+    .then(cart => {
+      return cart.getProducts({ where: { id: productId } });
+    })
+    .then(products => {
+      const product = products[0];
+      if (product) {
+        product.cartItem.destroy();
+      }
       res.redirect("/cart");
-    } else {
-      console.log("PRODUCT TO DELETE NOT FOUND");
-      res.redirect("/cart");
-    }
-  });
+    })
+    .catch(err => console.log(err));
+  // Product.findById(productId, product => {
+  //   if (product) {
+  //     Cart.deleteProduct(productId, product.price);
+  //     res.redirect("/cart");
+  //   } else {
+  //     console.log("PRODUCT TO DELETE NOT FOUND");
+  //     res.redirect("/cart");
+  //   }
+  // });
 };
 
 exports.getOrders = (req, res, next) => {
