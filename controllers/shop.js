@@ -114,27 +114,56 @@ exports.postCartDeleteItem = (req, res, next) => {
       res.redirect("/cart");
     })
     .catch(err => console.log(err));
-  // Product.findById(productId, product => {
-  //   if (product) {
-  //     Cart.deleteProduct(productId, product.price);
-  //     res.redirect("/cart");
-  //   } else {
-  //     console.log("PRODUCT TO DELETE NOT FOUND");
-  //     res.redirect("/cart");
-  //   }
-  // });
 };
 
 exports.getOrders = (req, res, next) => {
-  res.render("shop/orders", {
-    path: "/orders",
-    pageTitle: "Your Orders"
-  });
+  req.user
+    .getOrders({ include: ["products"] })
+    .then(orders =>
+      res.render("shop/orders", {
+        path: "/orders",
+        pageTitle: "Your Orders",
+        orders: orders
+      })
+    )
+    .catch(err => console.log(err));
 };
 
-exports.getCheckout = (req, res, next) => {
-  res.render("shop/checkout", {
-    path: "/checkout",
-    pageTitle: "Checkout"
-  });
+exports.postCreateOrder = (req, res, next) => {
+  let fetchedCartProducts, fetchedCart;
+  req.user
+    .getCart()
+    .then(cart => {
+      fetchedCart = cart;
+      return cart.getProducts();
+    })
+    .then(products => {
+      // Only create a new order if there is a product in cart
+      if (products.length == 0) {
+        console.log("No Item in cart to checkout!");
+        res.redirect("/cart");
+      }
+
+      fetchedCartProducts = products;
+
+      // Create an order
+      return req.user.createOrder();
+    })
+    .then(order => {
+      return order.addProducts(
+        fetchedCartProducts.map(product => {
+          product.orderItem = { quantity: product.cartItem.quantity };
+          return product;
+        })
+      );
+    })
+    .then(result => {
+      fetchedCart.setProducts(null);
+    })
+    .then(result => {
+      res.redirect("/orders");
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };

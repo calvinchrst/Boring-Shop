@@ -5,10 +5,13 @@ const bodyParser = require("body-parser");
 
 const errorController = require("./controllers/error");
 const sequelize = require("./util/database");
+
 const Product = require("./models/product");
 const User = require("./models/user");
 const Cart = require("./models/cart");
 const CartItem = require("./models/cart-item");
+const Order = require("./models/order");
+const OrderItem = require("./models/order-item");
 
 const app = express();
 
@@ -37,12 +40,16 @@ app.use(shopRoutes);
 app.use(errorController.get404);
 
 // Set Sequelize / Database Table association
-Product.belongsTo(User, { constraints: true, onDelete: "cascade" });
+Product.belongsTo(User, { constraints: true, onDelete: "cascade" }); // Product - User relation
 User.hasMany(Product);
-User.hasOne(Cart);
+User.hasOne(Cart); // User - Cart Relation
 Cart.belongsTo(User);
-Cart.belongsToMany(Product, { through: CartItem });
+Cart.belongsToMany(Product, { through: CartItem }); // Cart - Product relation
 Product.belongsToMany(Cart, { through: CartItem });
+User.hasMany(Order); // User - Order relation
+Order.belongsTo(User);
+Order.belongsToMany(Product, { through: OrderItem }); // Order - Product relation
+Product.belongsToMany(Order, { through: OrderItem });
 
 // Initialize Database & Start Listening
 let fetchedUser;
