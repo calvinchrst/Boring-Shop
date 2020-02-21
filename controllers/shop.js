@@ -46,32 +46,55 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-  Cart.getCartFromFile(cart => {
-    Product.getProductsFromFile(products => {
-      const cartProducts = [];
-      for (product of products) {
-        const cartProductData = cart.products.find(
-          prod => prod.id == product.id
-        );
-        if (cartProductData) {
-          cartProducts.push({ productData: product, qty: cartProductData.qty });
-        }
-      }
+  req.user
+    .getCart()
+    .then(cart => {
+      return cart.getProducts();
+    })
+    .then(products => {
       res.render("shop/cart", {
         path: "/cart",
         pageTitle: "Your Cart",
-        products: cartProducts
+        products: products
       });
+    })
+    .catch(err => {
+      console.log(err);
     });
-  });
 };
 
 exports.postCart = (req, res, next) => {
   const productId = req.body.productId;
-  Product.findById(productId, product => {
-    Cart.addProduct(productId, product.price);
-  });
-  res.redirect("/cart");
+  let fetchedCart;
+  let newQuantity;
+  req.user
+    .getCart()
+    .then(cart => {
+      fetchedCart = cart;
+      return cart.getProducts({ where: { id: productId } });
+    })
+    .then(products => {
+      let product;
+      newQuantity = 1;
+      if (products.length > 0) {
+        // Product is already in cart. Just increase the quantity
+        product = products[0];
+        newQuantity = product.cartItem.quantity + 1;
+        console.log("product Found!");
+      }
+      return Product.findByPk(productId);
+    })
+    .then(product => {
+      return fetchedCart.addProduct(product, {
+        through: { quantity: newQuantity }
+      });
+    })
+    .then(() => {
+      res.redirect("/cart");
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };
 
 exports.postCartDeleteItem = (req, res, next) => {

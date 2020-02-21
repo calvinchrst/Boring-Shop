@@ -24,7 +24,7 @@ exports.postAddProduct = (req, res, next) => {
     })
     .then(() => {
       res.redirect("/admin/products");
-      console.log("Product Added");
+      // console.log("Product Added");
     })
     .catch(err => {
       console.log(error);
@@ -38,7 +38,7 @@ exports.getEditProduct = (req, res, next) => {
   }
 
   const prodId = req.params.productId;
-  req.user
+  req.user // get product for this user only
     .getProducts({ where: { id: prodId } })
     .then(products => {
       res.render("admin/edit-product", {
