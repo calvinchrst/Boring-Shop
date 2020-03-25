@@ -8,7 +8,7 @@ class Product {
     this.price = price;
     this.description = description;
     this.imageUrl = imageUrl;
-    this._id = ObjectID(id);
+    this._id = id ? ObjectID(id) : null;
   }
 
   save() {
@@ -52,7 +52,7 @@ class Product {
     const db = getDb();
     return db
       .collection("products")
-      .findOne({ _id: mongodb.ObjectID(id) })
+      .findOne({ _id: ObjectID(id) })
       .then(product => {
         console.log(product);
         return product;
