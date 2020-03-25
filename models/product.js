@@ -41,11 +41,10 @@ class Product {
     const db = getDb();
     return db
       .collection("products")
-      .find({ _id: mongodb.ObjectID(id) })
-      .toArray()
-      .then(products => {
-        console.log(products);
-        return products[0];
+      .findOne({ _id: mongodb.ObjectID(id) })
+      .then(product => {
+        console.log(product);
+        return product;
       })
       .catch(err => {
         console.log(err);
