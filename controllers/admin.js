@@ -2,6 +2,20 @@ const Product = require("../models/product");
 // const Cart = require("../models/cart");
 // const User = require("../models/user");
 
+exports.getProducts = (req, res, next) => {
+  Product.fetchAll()
+    .then(products => {
+      res.render("admin/products", {
+        prods: products,
+        pageTitle: "Admin Products",
+        path: "/admin/products"
+      });
+    })
+    .catch(err => {
+      console.log(err);
+    });
+};
+
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
     pageTitle: "Add Product",
@@ -73,28 +87,11 @@ exports.postEditProduct = (req, res, next) => {
     });
 };
 
-// exports.postDeleteProduct = (req, res, next) => {
-//   productId = req.body.productId;
-//   Product.findByPk(productId)
-//     .then(product => {
-//       return product.destroy();
-//     })
-//     .then(result => {
-//       res.redirect("/admin/products");
-//     })
-//     .catch(err => {
-//       console.log(err);
-//     });
-// };
-
-exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
-    .then(products => {
-      res.render("admin/products", {
-        prods: products,
-        pageTitle: "Admin Products",
-        path: "/admin/products"
-      });
+exports.postDeleteProduct = (req, res, next) => {
+  productId = req.body.productId;
+  Product.deleteById(productId)
+    .then(() => {
+      res.redirect("/admin/products");
     })
     .catch(err => {
       console.log(err);
