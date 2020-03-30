@@ -1,10 +1,11 @@
 const path = require("path");
+const fs = require("fs");
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const errorController = require("./controllers/error");
-const mongoConnect = require("./util/database").mongoConnect;
 const User = require("./models/user");
 
 const app = express();
@@ -33,8 +34,21 @@ app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-mongoConnect(() => {
-  app.listen(3000);
-});
-
-console.log("Server startup Done");
+// Setup connection to mongoDB
+configPath = "./db_config.json";
+config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
+mongodbConnectionURL =
+  config.databaseUrlPrefix +
+  config.username +
+  ":" +
+  config.password +
+  config.databaseUrlPostfix;
+mongoose
+  .connect(mongodbConnectionURL)
+  .then(result => {
+    app.listen(3000);
+    console.log("Server startup Done");
+  })
+  .catch(err => {
+    console.log(err);
+  });
