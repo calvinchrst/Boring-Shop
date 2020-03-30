@@ -4,14 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 const errorController = require("./controllers/error");
-const sequelize = require("./util/database");
-
-const Product = require("./models/product");
+const mongoConnect = require("./util/database").mongoConnect;
 const User = require("./models/user");
-const Cart = require("./models/cart");
-const CartItem = require("./models/cart-item");
-const Order = require("./models/order");
-const OrderItem = require("./models/order-item");
 
 const app = express();
 
@@ -24,9 +18,9 @@ const shopRoutes = require("./routes/shop");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res, next) => {
-  User.findByPk(1)
+  User.findById("5e7bf43b04adeb3228af7a9f")
     .then(user => {
-      req.user = user;
+      req.user = new User(user.name, user.email, user._id, user.cart);
       next();
     })
     .catch(err => {
@@ -39,50 +33,8 @@ app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-// Set Sequelize / Database Table association
-Product.belongsTo(User, { constraints: true, onDelete: "cascade" }); // Product - User relation
-User.hasMany(Product);
-User.hasOne(Cart); // User - Cart Relation
-Cart.belongsTo(User);
-Cart.belongsToMany(Product, { through: CartItem }); // Cart - Product relation
-Product.belongsToMany(Cart, { through: CartItem });
-User.hasMany(Order); // User - Order relation
-Order.belongsTo(User);
-Order.belongsToMany(Product, { through: OrderItem }); // Order - Product relation
-Product.belongsToMany(Order, { through: OrderItem });
-
-// Initialize Database & Start Listening
-let fetchedUser;
-sequelize
-  .sync()
-  // .sync({ force: true })
-  .then(result => {
-    return User.findByPk(1);
-  })
-  .then(user => {
-    // If Dummy User with Id 1 does not exist, create it & use it. Otherwise just use existing user with id 1.
-    if (!user) {
-      return User.create({ name: "Max", email: "test@gmail.com" });
-    }
-    return user; // By right should be return Promise.resolve(user)
-    // By right, This is inconsistent return because if the user is null we return a promise and if not, we return an object.
-    // However, because you return a value in a then block, it is automatically wrap into a new promise
-  })
-  .then(user => {
-    fetchedUser = user;
-    return user.getCart();
-  })
-  .then(cart => {
-    if (!cart) {
-      return fetchedUser.createCart();
-    }
-    return cart;
-  })
-  .then(cart => {
-    app.listen(3000);
-  })
-  .catch(err => {
-    console.log(err);
-  });
+mongoConnect(() => {
+  app.listen(3000);
+});
 
 console.log("Server startup Done");
