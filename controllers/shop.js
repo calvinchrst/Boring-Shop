@@ -68,6 +68,7 @@ exports.postCart = (req, res, next) => {
     .addToCart(productId)
     .then(result => {
       console.log("Shop.js postcart result:", result);
+      res.redirect("/cart");
     })
     .catch(err => {
       console.log(err);
