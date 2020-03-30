@@ -75,24 +75,15 @@ exports.postCart = (req, res, next) => {
     });
 };
 
-// exports.postCartDeleteItem = (req, res, next) => {
-//   const productId = req.body.productId;
-//   req.user
-//     .getCart()
-//     .then(cart => {
-//       return cart.getProducts({ where: { id: productId } });
-//     })
-//     .then(products => {
-//       const product = products[0];
-//       if (product) {
-//         return product.cartItem.destroy();
-//       }
-//     })
-//     .then(result => {
-//       res.redirect("/cart");
-//     })
-//     .catch(err => console.log(err));
-// };
+exports.postCartDeleteItem = (req, res, next) => {
+  const productId = req.body.productId;
+  req.user
+    .deleteItemFromCart(productId)
+    .then(result => {
+      res.redirect("/cart");
+    })
+    .catch(err => console.log(err));
+};
 
 // exports.getOrders = (req, res, next) => {
 //   req.user

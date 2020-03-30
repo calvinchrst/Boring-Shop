@@ -59,6 +59,17 @@ class User {
       .updateOne({ _id: this._id }, { $set: { cart: updatedCart } });
   }
 
+  deleteItemFromCart(productId) {
+    const updatedCartItems = this.cart.items.filter(item => {
+      return item.productId.toString() !== productId.toString();
+    });
+    const updatedCart = { items: updatedCartItems };
+    const db = getDb();
+    return db
+      .collection("users")
+      .updateOne({ _id: this._id }, { $set: { cart: updatedCart } });
+  }
+
   getCart() {
     // return products that contain all product information + quantity info from cart
     const db = getDb();
@@ -70,6 +81,7 @@ class User {
       .find({ _id: { $in: productIds } })
       .toArray()
       .then(products => {
+        // Map the products to have additional attribute quantity
         return products.map(p => {
           return {
             ...p,
