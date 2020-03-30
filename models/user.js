@@ -70,6 +70,18 @@ class User {
       .updateOne({ _id: this._id }, { $set: { cart: updatedCart } });
   }
 
+  deleteAllItemFromCart() {
+    const db = getDb();
+    return db
+      .collection("users")
+      .updateOne({ _id: this._id }, { $set: { cart: { items: [] } } })
+      .then(result => {
+        console.log("user.DeleteAllItemFromCart, Result:", result);
+        return result;
+      })
+      .catch(err => console.log("user.DeleteAllItemFromCart, Error:", err));
+  }
+
   getCart() {
     // return products that contain all product information + quantity info from cart
     const db = getDb();
@@ -94,6 +106,18 @@ class User {
       .catch(err => {
         console.log(err);
       });
+  }
+
+  addOrder() {
+    const db = getDb();
+    return db
+      .collection("orders")
+      .insertOne(this.cart)
+      .then(result => {
+        console.log("User.addOrder, Result:", result);
+        return this.deleteAllItemFromCart();
+      })
+      .catch(err => console.log(console.log("User.addOrder, Error:", err)));
   }
 
   static findById(id) {
