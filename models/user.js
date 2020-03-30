@@ -128,6 +128,14 @@ class User {
       .catch(err => console.log(console.log("User.addOrder, Error:", err)));
   }
 
+  getOrders() {
+    const db = getDb();
+    return db
+      .collection("orders")
+      .find({ "user._id": this._id })
+      .toArray();
+  }
+
   static findById(id) {
     const db = getDb();
     return db
