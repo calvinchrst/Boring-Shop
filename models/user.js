@@ -110,9 +110,17 @@ class User {
 
   addOrder() {
     const db = getDb();
-    return db
-      .collection("orders")
-      .insertOne(this.cart)
+    return this.getCart()
+      .then(products => {
+        const order = {
+          items: products,
+          user: {
+            _id: this._id,
+            name: this.name
+          }
+        };
+        return db.collection("orders").insertOne(order);
+      })
       .then(result => {
         console.log("User.addOrder, Result:", result);
         return this.deleteAllItemFromCart();
