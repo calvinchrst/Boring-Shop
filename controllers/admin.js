@@ -27,18 +27,19 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  console.log("postAddProduct req.user._id", req.user);
+  console.log("postAddProduct req.user._id", req.user._id);
   const product = new Product({
     title: title,
     price: price,
     description: description,
-    imageUrl: imageUrl
+    imageUrl: imageUrl,
+    userId: req.user // mongoose will automatically take the userId of user object
   });
   product
     .save()
     .then(result => {
       res.redirect("/admin/products");
-      // console.log("Product Added");
+      console.log("Product Added");
     })
     .catch(err => {
       console.log(error);
