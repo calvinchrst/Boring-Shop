@@ -1,10 +1,11 @@
 const path = require("path");
+const fs = require("fs");
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const errorController = require("./controllers/error");
-const mongoConnect = require("./util/database").mongoConnect;
 const User = require("./models/user");
 
 const app = express();
@@ -18,9 +19,9 @@ const shopRoutes = require("./routes/shop");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res, next) => {
-  User.findById("5e7bf43b04adeb3228af7a9f")
+  User.findById("5e82997f99ae9937c860beaf")
     .then(user => {
-      req.user = new User(user.name, user.email, user._id, user.cart);
+      req.user = user;
       next();
     })
     .catch(err => {
@@ -33,8 +34,33 @@ app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-mongoConnect(() => {
-  app.listen(3000);
-});
-
-console.log("Server startup Done");
+// Setup connection to mongoDB
+configPath = "./db_config.json";
+config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
+mongodbConnectionURL =
+  config.databaseUrlPrefix +
+  config.username +
+  ":" +
+  config.password +
+  config.databaseUrlPostfix;
+mongoose
+  .connect(mongodbConnectionURL)
+  .then(result => {
+    User.findOne().then(user => {
+      if (!user) {
+        const user = new User({
+          name: "Max",
+          email: "max@test.com",
+          cart: {
+            items: []
+          }
+        });
+        user.save();
+      }
+    });
+    app.listen(3000);
+    console.log("Server startup Done");
+  })
+  .catch(err => {
+    console.log(err);
+  });
