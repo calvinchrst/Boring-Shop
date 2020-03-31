@@ -82,15 +82,15 @@ exports.postCart = (req, res, next) => {
     });
 };
 
-// exports.postCartDeleteItem = (req, res, next) => {
-//   const productId = req.body.productId;
-//   req.user
-//     .deleteItemFromCart(productId)
-//     .then(result => {
-//       res.redirect("/cart");
-//     })
-//     .catch(err => console.log(err));
-// };
+exports.postCartDeleteItem = (req, res, next) => {
+  const productId = req.body.productId;
+  req.user
+    .removeFromCart(productId)
+    .then(result => {
+      res.redirect("/cart");
+    })
+    .catch(err => console.log(err));
+};
 
 // exports.getOrders = (req, res, next) => {
 //   req.user
