@@ -47,12 +47,6 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-  console.log(req.user.cart.items);
-  console.log(req.user.cart.items[0].productId);
-  Product.findById(req.user.cart.items[0].productId).then(product =>
-    console.log(product)
-  );
-
   req.user
     .populate("cart.items.productId")
     .execPopulate()
