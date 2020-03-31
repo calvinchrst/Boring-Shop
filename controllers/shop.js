@@ -14,23 +14,23 @@ exports.getProducts = (req, res, next) => {
     });
 };
 
-// exports.getProduct = (req, res, next) => {
-//   const prodId = req.params.productId;
-//   Product.fetchProductById(prodId)
-//     .then(product => {
-//       if (product) {
-//         console.log(product);
-//         res.render("shop/product-detail", {
-//           product: product,
-//           pageTitle: product.title,
-//           path: "/products"
-//         });
-//       }
-//     })
-//     .catch(err => {
-//       console.log(err);
-//     });
-// };
+exports.getProduct = (req, res, next) => {
+  const prodId = req.params.productId;
+  Product.findById(prodId)
+    .then(product => {
+      if (product) {
+        console.log(product);
+        res.render("shop/product-detail", {
+          product: product,
+          pageTitle: product.title,
+          path: "/products"
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+    });
+};
 
 exports.getIndex = (req, res, next) => {
   Product.find()
