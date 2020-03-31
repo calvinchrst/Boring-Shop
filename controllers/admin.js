@@ -14,38 +14,36 @@ const Product = require("../models/product");
 //     });
 // };
 
-// exports.getAddProduct = (req, res, next) => {
-//   res.render("admin/edit-product", {
-//     pageTitle: "Add Product",
-//     path: "/admin/add-product",
-//     editMode: false
-//   });
-// };
+exports.getAddProduct = (req, res, next) => {
+  res.render("admin/edit-product", {
+    pageTitle: "Add Product",
+    path: "/admin/add-product",
+    editMode: false
+  });
+};
 
-// exports.postAddProduct = (req, res, next) => {
-//   const title = req.body.title;
-//   const imageUrl = req.body.imageUrl;
-//   const price = req.body.price;
-//   const description = req.body.description;
-//   console.log("postAddProduct req.user._id", req.user);
-//   const product = new Product(
-//     title,
-//     price,
-//     description,
-//     imageUrl,
-//     null,
-//     req.user._Id
-//   );
-//   product
-//     .save()
-//     .then(() => {
-//       res.redirect("/admin/products");
-//       // console.log("Product Added");
-//     })
-//     .catch(err => {
-//       console.log(error);
-//     });
-// };
+exports.postAddProduct = (req, res, next) => {
+  const title = req.body.title;
+  const imageUrl = req.body.imageUrl;
+  const price = req.body.price;
+  const description = req.body.description;
+  console.log("postAddProduct req.user._id", req.user);
+  const product = new Product({
+    title: title,
+    price: price,
+    description: description,
+    imageUrl: imageUrl
+  });
+  product
+    .save()
+    .then(result => {
+      res.redirect("/admin/products");
+      // console.log("Product Added");
+    })
+    .catch(err => {
+      console.log(error);
+    });
+};
 
 // exports.getEditProduct = (req, res, next) => {
 //   const editMode = req.query.edit;
