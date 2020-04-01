@@ -4,11 +4,16 @@ const fs = require("fs");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const session = require("express-session");
 
 const errorController = require("./controllers/error");
 const User = require("./models/user");
 
 const app = express();
+
+// Set up config file which stores sensitive information
+const configPath = "./db_config.json";
+const config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -19,6 +24,13 @@ const authRoutes = require("./routes/auth");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  session({
+    secret: config.session_secret,
+    resave: false,
+    saveUninitialized: false
+  })
+);
 app.use((req, res, next) => {
   User.findById("5e82997f99ae9937c860beaf")
     .then(user => {
@@ -37,9 +49,7 @@ app.use(authRoutes);
 app.use(errorController.get404);
 
 // Setup connection to mongoDB
-configPath = "./db_config.json";
-config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
-mongodbConnectionURL =
+const mongodbConnectionURL =
   config.databaseUrlPrefix +
   config.username +
   ":" +
