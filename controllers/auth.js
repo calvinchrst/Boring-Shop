@@ -13,7 +13,10 @@ exports.postLogin = (req, res, next) => {
     .then(user => {
       req.session.isLoggedIn = true; // Temporary didn't do any authentication to test how session works
       req.session.user = user;
-      res.redirect("/");
+      req.session.save(err => {
+        // Explicityly call save so that the redirect is fired after the session is updated on database
+        res.redirect("/");
+      });
     })
     .catch(err => console.log(err));
 };
