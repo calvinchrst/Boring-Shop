@@ -19,15 +19,40 @@ exports.getSignup = (req, res, next) => {
 };
 
 exports.postLogin = (req, res, next) => {
-  User.findById("5e82997f99ae9937c860beaf")
+  const email = req.body.email;
+  const password = req.body.password;
+
+  // Get user of with the inputted email
+  User.findOne({ email: email })
     .then(user => {
-      req.session.isLoggedIn = true; // Temporary didn't do any authentication to test how session works
-      req.session.user = user;
-      req.session.save(err => {
-        // Explicityly call save so that the redirect is fired after the session is updated on database
-        res.redirect("/");
-      });
+      if (!user) {
+        return res.redirect("/login"); // TODO: Inform user of the invalid email & password combination
+      }
+
+      // Else if user is found (i.e., email is found in the database):
+      bcrypt
+        .compare(password, user.password)
+        .then(isMatch => {
+          if (isMatch) {
+            req.session.isLoggedIn = true;
+            req.session.user = user;
+            req.session.save(err => {
+              // Explicityly call save so that the redirect is fired after the session is updated on database
+              res.redirect("/");
+            });
+          } else {
+            res.redirect("/login"); // TODO: Inform user of the invalid email & password combination
+          }
+        })
+        .catch(err => {
+          console.log(err);
+          return res.redirect("/login"); // TODO: Inform user something is wrong with the system
+        });
     })
+    .catch(err => console.log(err));
+
+  User.findById("5e82997f99ae9937c860beaf")
+    .then(user => {})
     .catch(err => console.log(err));
 };
 
