@@ -44,15 +44,18 @@ app.use(
     store: store
   })
 );
+
+// Initialize User
 app.use((req, res, next) => {
-  User.findById("5e82997f99ae9937c860beaf")
+  if (!req.session.user) {
+    return next();
+  }
+  User.findById(req.session.user._id)
     .then(user => {
       req.user = user;
       next();
     })
-    .catch(err => {
-      console.log(err);
-    });
+    .catch(err => console.log(err));
 });
 
 app.use("/admin", adminRoutes);
