@@ -11,3 +11,10 @@ exports.postLogin = (req, res, next) => {
   req.session.isLoggedIn = true; // Temporary didn't do any authentication to test how session works
   res.redirect("/");
 };
+
+exports.postLogout = (req, res, next) => {
+  req.session.destroy(err => {
+    console.log(err);
+    res.redirect("/");
+  });
+};
