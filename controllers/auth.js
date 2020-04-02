@@ -3,18 +3,30 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 
 exports.getLogin = (req, res, next) => {
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render("auth/login", {
     pageTitle: "Login",
     path: "/login",
-    isAuthenticated: req.session.isLoggedIn
+    errorMessage: message
   });
 };
 
 exports.getSignup = (req, res, next) => {
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render("auth/signup", {
     path: "/signup",
     pageTitle: "Signup",
-    isAuthenticated: false
+    errorMessage: message
   });
 };
 
@@ -26,7 +38,11 @@ exports.postLogin = (req, res, next) => {
   User.findOne({ email: email })
     .then(user => {
       if (!user) {
-        return res.redirect("/login"); // TODO: Inform user of the invalid email & password combination
+        req.flash("error", "Invalid email or password");
+        return req.session.save(err => {
+          // Explicityly call save so that the redirect is fired after the session is updated on database
+          return res.redirect("/login");
+        });
       }
 
       // Else if user is found (i.e., email is found in the database):
@@ -36,13 +52,16 @@ exports.postLogin = (req, res, next) => {
           if (isMatch) {
             req.session.isLoggedIn = true;
             req.session.user = user;
-            req.session.save(err => {
+            return req.session.save(err => {
               // Explicityly call save so that the redirect is fired after the session is updated on database
               res.redirect("/");
             });
-          } else {
-            res.redirect("/login"); // TODO: Inform user of the invalid email & password combination
           }
+          req.flash("error", "Invalid email or password");
+          return req.session.save(err => {
+            // Explicityly call save so that the redirect is fired after the session is updated on database
+            res.redirect("/login");
+          });
         })
         .catch(err => {
           console.log(err);
@@ -67,7 +86,14 @@ exports.postSignup = (req, res, next) => {
   User.findOne({ email: email })
     .then(userDoc => {
       if (userDoc) {
-        return res.redirect("/signup"); // TODO: Inform that existing email already registered
+        req.flash(
+          "error",
+          "Email already registered. Please input another one or log in"
+        );
+        return req.session.save(err => {
+          // Explicityly call save so that the redirect is fired after the session is updated on database
+          return res.redirect("signup");
+        });
       }
       return bcrypt
         .hash(password, 12) // Generate hash password
