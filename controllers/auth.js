@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
@@ -8,7 +10,7 @@ const transporter = nodemailer.createTransport(
   sendgridTransport({
     auth: {
       api_key:
-        ***REMOVED***
+        "***REMOVED***"
     }
   })
 );
@@ -134,5 +136,58 @@ exports.postLogout = (req, res, next) => {
   req.session.destroy(err => {
     console.log(err);
     res.redirect("/");
+  });
+};
+
+exports.getReset = (req, res, next) => {
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
+  res.render("auth/reset", {
+    pageTitle: "Reset Password",
+    path: "/reset",
+    errorMessage: message
+  });
+};
+
+exports.postReset = (req, res, next) => {
+  crypto.randomBytes(32, (err, buffer) => {
+    if (err) {
+      console.log(err);
+      return res.redirect("/reset");
+    }
+
+    const token = buffer.toString("hex");
+    console.log("Token", token);
+
+    User.findOne({ email: req.body.email })
+      .then(user => {
+        if (!user) {
+          req.flash("error", "No account with that email found");
+          req.session.save(err => {
+            // Explicityly call save so that the redirect is fired after the session is updated on database
+            return res.redirect("/reset");
+          });
+        }
+        user.resetToken = token;
+        user.resetTokenExpiration = Date.now() + 3600000;
+        return user.save();
+      })
+      .then(result => {
+        res.redirect("/login");
+        return transporter.sendMail({
+          to: req.body.email,
+          from: "calvin@simple-marketplace.com",
+          subject: "Password reset",
+          html: `
+          <p> You requested password reset </p>
+          <p> Click this <a href="http://localhost:3000/reset/${token}">link</a> to set a new password.</p>
+        `
+        });
+      })
+      .catch(err => console.log(err));
   });
 };
