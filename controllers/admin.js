@@ -62,21 +62,26 @@ exports.postEditProduct = (req, res, next) => {
 
   Product.findById(prodId)
     .then(product => {
+      // Authorization: Only allow editing from user that creates the product
+      if (product.userId.toString() !== req.user._id.toString()) {
+        return res.redirect("/admin/products");
+      }
+
+      // Else user is authorized to edit the product
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDesc;
       product.imageUrl = updatedImageUrl;
-      return product.save();
-    })
-    .then(result => {
-      console.log("UPDATED PRODUCT!");
-      res.redirect("/admin/products");
+      return product.save().then(result => {
+        console.log("UPDATED PRODUCT!");
+        res.redirect("/admin/products");
+      });
     })
     .catch(err => console.log(err));
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  Product.find({}) // Only show products created by logged in user
     // .select('title price -_id')
     // .populate('userId', 'name')
     .then(products => {
@@ -92,7 +97,7 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByIdAndRemove(prodId)
+  Product.deleteOne({ _id: prodId, userId: req.user._id }) // Authorization: Only allow deletion from user that creates the product
     .then(() => {
       console.log("DESTROYED PRODUCT");
       res.redirect("/admin/products");
