@@ -24,10 +24,16 @@ exports.getLogin = (req, res, next) => {
   } else {
     message = null;
   }
+
   res.render("auth/login", {
     pageTitle: "Login",
     path: "/login",
-    errorMessage: message
+    errorMessage: message,
+    oldInput: {
+      email: "",
+      password: ""
+    },
+    validationErrors: []
   });
 };
 
@@ -54,15 +60,36 @@ exports.getSignup = (req, res, next) => {
 exports.postLogin = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
+  const validationErrors = validationResult(req);
+  const validationErrorsArray = validationResult(req).array();
+
+  // Check for any validatione errors
+  if (!validationErrors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      path: "/login",
+      pageTitle: "Login",
+      errorMessage: validationErrorsArray[0].msg,
+      oldInput: {
+        email: email,
+        password: password
+      },
+      validationErrors: validationErrorsArray
+    });
+  }
 
   // Get user of with the inputted email
   User.findOne({ email: email })
     .then(user => {
       if (!user) {
-        req.flash("error", "Invalid email or password");
-        return req.session.save(err => {
-          // Explicityly call save so that the redirect is fired after the session is updated on database
-          return res.redirect("/login");
+        return res.status(422).render("auth/login", {
+          path: "/login",
+          pageTitle: "Login",
+          errorMessage: "Invalid email or password",
+          oldInput: {
+            email: email,
+            password: password
+          },
+          validationErrors: []
         });
       }
 
@@ -78,10 +105,17 @@ exports.postLogin = (req, res, next) => {
               res.redirect("/");
             });
           }
-          req.flash("error", "Invalid email or password");
-          return req.session.save(err => {
-            // Explicityly call save so that the redirect is fired after the session is updated on database
-            res.redirect("/login");
+
+          // Else password and user don't match.
+          return res.status(422).render("auth/login", {
+            path: "/login",
+            pageTitle: "Login",
+            errorMessage: "Invalid email or password",
+            oldInput: {
+              email: email,
+              password: password
+            },
+            validationErrors: []
           });
         })
         .catch(err => {
@@ -103,7 +137,6 @@ exports.postSignup = (req, res, next) => {
   const validationErrorsArray = validationResult(req).array();
 
   if (!validationErrors.isEmpty()) {
-    console.log(validationErrors);
     return res.status(422).render("auth/signup", {
       path: "/signup",
       pageTitle: "Signup",
