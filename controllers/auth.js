@@ -63,7 +63,7 @@ exports.postLogin = (req, res, next) => {
   const validationErrors = validationResult(req);
   const validationErrorsArray = validationResult(req).array();
 
-  // Check for any validatione errors
+  // Check for any validation errors
   if (!validationErrors.isEmpty()) {
     return res.status(422).render("auth/login", {
       path: "/login",
