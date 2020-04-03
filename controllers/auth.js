@@ -6,11 +6,12 @@ const sendgridTransport = require("nodemailer-sendgrid-transport");
 
 const User = require("../models/user");
 
+const BCRYPT_NR_HASH = 12;
+
 const transporter = nodemailer.createTransport(
   sendgridTransport({
     auth: {
-      api_key:
-        "***REMOVED***"
+      api_key: "***REMOVED***"
     }
   })
 );
@@ -109,7 +110,7 @@ exports.postSignup = (req, res, next) => {
         });
       }
       return bcrypt
-        .hash(password, 12) // Generate hash password
+        .hash(password, BCRYPT_NR_HASH) // Generate hash password
         .then(hashedPassword => {
           const user = new User({
             email: email,
@@ -190,4 +191,74 @@ exports.postReset = (req, res, next) => {
       })
       .catch(err => console.log(err));
   });
+};
+
+exports.getNewPassword = (req, res, next) => {
+  // Check if reset password token is valid
+  const token = req.params.token;
+  User.findOne({ resetToken: token, resetTokenExpiration: { $gt: Date.now() } })
+    .then(user => {
+      if (!user) {
+        req.flash(
+          "error",
+          "Invalid / Expired Reset Link. Please request another reset password email"
+        );
+        return req.session.save(err => {
+          // Explicityly call save so that the redirect is fired after the session is updated on database
+          return res.redirect("/reset");
+        });
+      }
+
+      // If user is found
+      let message = req.flash("error");
+      if (message.length > 0) {
+        message = message[0];
+      } else {
+        message = null;
+      }
+      res.render("auth/new-password", {
+        pageTitle: "New Password",
+        path: "/new-password",
+        errorMessage: message,
+        userId: user._id.toString(),
+        resetToken: token
+      });
+    })
+    .catch(err => console.log(err));
+};
+
+exports.postNewPassword = (req, res, next) => {
+  resetToken = req.body.resetToken;
+  newPassword = req.body.password;
+  userId = req.body.userId;
+
+  // Check if corresponding user with the token and userId indeed exist
+  User.findOne({
+    resetToken: resetToken,
+    resetTokenExpiration: { $gt: Date.now() },
+    _id: userId
+  })
+    .then(user => {
+      if (!user) {
+        req.flash(
+          "error",
+          "Invalid / Expired Reset Link. Please request another reset password email"
+        );
+        return req.session.save(err => {
+          // Explicityly call save so that the redirect is fired after the session is updated on database
+          return res.redirect("/reset");
+        });
+      }
+
+      // else if user is found
+      bcrypt
+        .hash(newPassword, 12) // Generate hash password
+        .then(hashedPassword => {
+          user.password = hashedPassword;
+          user.save().then(result => {
+            res.redirect("/login");
+          });
+        });
+    })
+    .catch(err => console.log(err));
 };
