@@ -105,39 +105,24 @@ exports.postSignup = (req, res, next) => {
     });
   }
 
-  // Find existing user, if any
-  User.findOne({ email: email })
-    .then(userDoc => {
-      if (userDoc) {
-        req.flash(
-          "error",
-          "Email already registered. Please input another one or log in"
-        );
-        return req.session.save(err => {
-          // Explicityly call save so that the redirect is fired after the session is updated on database
-          return res.redirect("signup");
-        });
-      }
-      return bcrypt
-        .hash(password, BCRYPT_NR_HASH) // Generate hash password
-        .then(hashedPassword => {
-          const user = new User({
-            email: email,
-            password: hashedPassword,
-            cart: { items: [] }
-          });
-          return user.save();
-        })
-        .then(result => {
-          res.redirect("/login");
-          return transporter.sendMail({
-            to: email,
-            from: "calvin@simple-marketplace.com",
-            subject: "Signup Successful",
-            html: "<h1>You successfully signed up!</h1>"
-          });
-        })
-        .catch(err => console.log(err));
+  bcrypt
+    .hash(password, BCRYPT_NR_HASH) // Generate hash password
+    .then(hashedPassword => {
+      const user = new User({
+        email: email,
+        password: hashedPassword,
+        cart: { items: [] }
+      });
+      return user.save();
+    })
+    .then(result => {
+      res.redirect("/login");
+      return transporter.sendMail({
+        to: email,
+        from: "calvin@simple-marketplace.com",
+        subject: "Signup Successful",
+        html: "<h1>You successfully signed up!</h1>"
+      });
     })
     .catch(err => console.log(err));
 };

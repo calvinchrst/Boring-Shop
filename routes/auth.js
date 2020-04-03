@@ -5,6 +5,8 @@ const authController = require("../controllers/auth");
 
 const router = express.Router();
 
+const User = require("../models/user");
+
 router.get("/login", authController.getLogin);
 
 router.get("/signup", authController.getSignup);
@@ -14,7 +16,18 @@ router.post("/login", authController.postLogin);
 router.post(
   "/signup",
   [
-    check("email", "Please enter a valid email").isEmail(),
+    check("email")
+      .isEmail()
+      .withMessage("Please enter a valid email")
+      .custom((value, { req }) => {
+        return User.findOne({ email: value }).then(userDoc => {
+          if (userDoc) {
+            return Promise.reject(
+              "Email already exist. Please enter a different email"
+            );
+          }
+        });
+      }),
     body(
       "password",
       "Please enter a password with at least 6 characters"
