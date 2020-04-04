@@ -158,18 +158,26 @@ exports.getInvoice = (req, res, next) => {
       // Read the file in the system and return it in the response
       invoiceFileName = "invoice-" + orderId + ".pdf";
       invoicePath = path.join("data", "invoice", invoiceFileName);
-      file = fs.readFile(invoicePath, (err, data) => {
-        if (err) {
-          return next(err);
-        }
+      // file = fs.readFile(invoicePath, (err, data) => {
+      //   if (err) {
+      //     return next(err);
+      //   }
 
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader(
-          "Content-Disposition",
-          "inline; filename='" + invoiceFileName + "'"
-        );
-        return res.send(data);
-      });
+      //   res.setHeader("Content-Type", "application/pdf");
+      //   res.setHeader(
+      //     "Content-Disposition",
+      //     "inline; filename='" + invoiceFileName + "'"
+      //   );
+      //   return res.send(data);
+      // });
+
+      const file = fs.createReadStream(invoicePath);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        "inline; filename='" + invoiceFileName + "'"
+      );
+      file.pipe(res); // response is a writable stream and we can just pipe the readable file stream to it
     })
     .catch(err => {
       const error = new Error(err);
