@@ -8,6 +8,13 @@ const Order = require("../models/order");
 
 const NR_PROD_PER_PAGE = 3;
 
+// Set up config file which stores sensitive information
+const configPath = "./db_config.json";
+const config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
+
+// Initialize Stripe
+const stripe = require("stripe")(config.stripe_secret_key);
+
 exports.getProducts = (req, res, next) => {
   const page = +req.query.page || 1;
   let totalItems;
@@ -133,14 +140,32 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
+  // Token is created using Checkout or Elements!
+  // Get the payment token ID submitted by the form:
+  const token = req.body.stripeToken; // Using Express
+  let totalPrice = 0;
+  let order;
+
   req.user
     .populate("cart.items.productId")
     .execPopulate()
     .then(user => {
       const products = user.cart.items.map(i => {
-        return { quantity: i.quantity, product: { ...i.productId._doc } };
+        return {
+          quantity: i.quantity,
+          product: {
+            ...i.productId._doc
+          }
+        };
       });
-      const order = new Order({
+
+      // Calculate Total Price
+      user.cart.items.forEach(p => {
+        totalPrice += p.quantity * p.productId.price;
+      });
+
+      // Save Order
+      order = new Order({
         user: {
           userId: user
         },
@@ -149,6 +174,16 @@ exports.postOrder = (req, res, next) => {
       return order.save();
     })
     .then(result => {
+      // Send payment to Stripe
+      const charge = stripe.charges.create({
+        amount: totalPrice * 100,
+        currency: "usd",
+        description: "Demo Order",
+        source: token,
+        metadata: { order_id: result._id.toString() }
+      });
+
+      // Clear Cart
       return req.user.clearCart();
     })
     .then(() => {
@@ -229,6 +264,7 @@ exports.getInvoice = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
+  const stripe_public_key = config.stripe_public_key;
   req.user
     .populate("cart.items.productId")
     .execPopulate()
@@ -242,7 +278,8 @@ exports.getCheckout = (req, res, next) => {
         path: "/checkout",
         pageTitle: "Checkout",
         products: products,
-        totalPrice: totalPrice
+        totalPrice: totalPrice,
+        stripe_public_key: stripe_public_key
       });
     })
     .catch(err => {
