@@ -1,6 +1,9 @@
+const path = require("path");
+
 const { validationResult } = require("express-validator/check");
 
 const Product = require("../models/product");
+const fileHelper = require("../util/file");
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
@@ -157,6 +160,8 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       product.description = updatedDesc;
       if (updatedImage) {
+        originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
+        fileHelper.deleteFile(originalImageFilePath);
         // Only update image path in database if we receive new file image
         product.imageUrl = "/" + updatedImage.path;
       }
@@ -193,7 +198,25 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteOne({ _id: prodId, userId: req.user._id }) // Authorization: Only allow deletion from user that creates the product
+  Product.findOne({
+    _id: prodId,
+    userId: req.user._id
+  }) // Authorization: Only allow deletion from user that creates the product
+    .then(product => {
+      if (!product) {
+        return next(new Error("Product not found / User not authorized"));
+      }
+
+      // Delete the image of the product from file system
+      originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
+      fileHelper.deleteFile(originalImageFilePath);
+
+      // Delete the product from database
+      return Product.deleteOne({
+        _id: prodId,
+        userId: req.user._id
+      });
+    })
     .then(() => {
       console.log("DESTROYED PRODUCT");
       res.redirect("/admin/products");

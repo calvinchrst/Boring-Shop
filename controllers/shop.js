@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
 
+const PDFDocument = require("pdfkit");
+
 const Product = require("../models/product");
 const Order = require("../models/order");
 
@@ -155,29 +157,38 @@ exports.getInvoice = (req, res, next) => {
         return next(new Error("No order found / Unauthorized"));
       }
 
-      // Read the file in the system and return it in the response
+      // Create invoice file. Save & Return it on response
       invoiceFileName = "invoice-" + orderId + ".pdf";
       invoicePath = path.join("data", "invoice", invoiceFileName);
-      // file = fs.readFile(invoicePath, (err, data) => {
-      //   if (err) {
-      //     return next(err);
-      //   }
-
-      //   res.setHeader("Content-Type", "application/pdf");
-      //   res.setHeader(
-      //     "Content-Disposition",
-      //     "inline; filename='" + invoiceFileName + "'"
-      //   );
-      //   return res.send(data);
-      // });
-
-      const file = fs.createReadStream(invoicePath);
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
         "inline; filename='" + invoiceFileName + "'"
       );
-      file.pipe(res); // response is a writable stream and we can just pipe the readable file stream to it
+
+      const pdfDoc = new PDFDocument();
+      pdfDoc.pipe(fs.createWriteStream(invoicePath));
+      pdfDoc.pipe(res);
+
+      pdfDoc.fontSize(24).text("Invoice");
+      pdfDoc.text("------------------------------------------");
+      pdfDoc.fontSize(18);
+      let totalPrice = 0;
+      order.products.forEach(element => {
+        totalPrice += element.quantity * element.product.price;
+        pdfDoc.text(
+          element.product.title +
+            " - " +
+            element.quantity +
+            " x $" +
+            element.product.price
+        );
+      });
+      pdfDoc.text("------------------------------------------");
+      pdfDoc.fontSize(20).text("Total Price: " + totalPrice);
+
+      pdfDoc.fontSize(14).text("Thank you for shopping with us!");
+      pdfDoc.end();
     })
     .catch(err => {
       const error = new Error(err);
