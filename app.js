@@ -51,6 +51,7 @@ const fileFilter = (req, file, cb) => {
   } else {
     cb(null, false);
   }
+  fs.readFileSync;
 };
 
 app.set("view engine", "ejs");
