@@ -152,7 +152,7 @@ exports.getInvoice = (req, res, next) => {
     .then(order => {
       // If order is null, just redirect back to orders page
       if (!order) {
-        return res.redirect("/orders");
+        return next(new Error("No order found / Unauthorized"));
       }
 
       // Read the file in the system and return it in the response
