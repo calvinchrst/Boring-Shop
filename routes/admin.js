@@ -20,7 +20,6 @@ router.post(
     body("title", "Please input Title with at least 3 characters")
       .trim()
       .isLength({ min: 3 }),
-    body("imageUrl", "Please input a valid Image URL").isURL(),
     body("price", "Please input a valid Price").isFloat(),
     body("description", "Please input Description with at least 5 characters")
       .trim()
@@ -38,7 +37,6 @@ router.post(
     body("title", "Please input Title with at least 3 characters")
       .trim()
       .isLength({ min: 3 }),
-    body("imageUrl", "Please input a valid Image URL").isURL(),
     body("price", "Please input a valid Price").isFloat(),
     body("description", "Please input Description between 5 - 400 characters")
       .trim()

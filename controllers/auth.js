@@ -94,40 +94,42 @@ exports.postLogin = (req, res, next) => {
       }
 
       // Else if user is found (i.e., email is found in the database):
-      bcrypt
-        .compare(password, user.password)
-        .then(isMatch => {
-          if (isMatch) {
-            req.session.isLoggedIn = true;
-            req.session.user = user;
-            return req.session.save(err => {
-              // Explicityly call save so that the redirect is fired after the session is updated on database
-              res.redirect("/");
-            });
-          }
-
-          // Else password and user don't match.
-          return res.status(422).render("auth/login", {
-            path: "/login",
-            pageTitle: "Login",
-            errorMessage: "Invalid email or password",
-            oldInput: {
-              email: email,
-              password: password
-            },
-            validationErrors: []
+      bcrypt.compare(password, user.password).then(isMatch => {
+        if (isMatch) {
+          req.session.isLoggedIn = true;
+          req.session.user = user;
+          return req.session.save(err => {
+            // Explicityly call save so that the redirect is fired after the session is updated on database
+            res.redirect("/");
           });
-        })
-        .catch(err => {
-          console.log(err);
-          return res.redirect("/login"); // TODO: Inform user something is wrong with the system
+        }
+
+        // Else password and user don't match.
+        return res.status(422).render("auth/login", {
+          path: "/login",
+          pageTitle: "Login",
+          errorMessage: "Invalid email or password",
+          oldInput: {
+            email: email,
+            password: password
+          },
+          validationErrors: []
         });
+      });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 
   User.findById("5e82997f99ae9937c860beaf")
     .then(user => {})
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postSignup = (req, res, next) => {
@@ -169,7 +171,11 @@ exports.postSignup = (req, res, next) => {
         html: "<h1>You successfully signed up!</h1>"
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postLogout = (req, res, next) => {
@@ -228,7 +234,11 @@ exports.postReset = (req, res, next) => {
         `
         });
       })
-      .catch(err => console.log(err));
+      .catch(err => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
   });
 };
 
@@ -263,7 +273,11 @@ exports.getNewPassword = (req, res, next) => {
         resetToken: token
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postNewPassword = (req, res, next) => {
@@ -299,5 +313,9 @@ exports.postNewPassword = (req, res, next) => {
           });
         });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };

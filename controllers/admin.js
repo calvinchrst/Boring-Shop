@@ -1,6 +1,9 @@
+const path = require("path");
+
 const { validationResult } = require("express-validator/check");
 
 const Product = require("../models/product");
+const fileHelper = require("../util/file");
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
@@ -20,11 +23,32 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
   const validationErrors = validationResult(req);
   const validationErrorsArray = validationResult(req).array();
+
+  // Check if image file exist
+  if (!image) {
+    validationErrorsArray.push({
+      param: "image"
+    });
+
+    return res.status(422).render("admin/edit-product", {
+      pageTitle: "Add Product",
+      path: "/admin/add-product",
+      editing: false,
+      errorMessage:
+        "File selected is not an image. Please select image file only",
+      oldInput: {
+        title: title,
+        price: price,
+        description: description
+      },
+      validationErrors: validationErrorsArray
+    });
+  }
 
   // Check for any validation errors
   if (!validationErrors.isEmpty()) {
@@ -35,13 +59,14 @@ exports.postAddProduct = (req, res, next) => {
       errorMessage: validationErrorsArray[0].msg,
       oldInput: {
         title: title,
-        imageUrl: imageUrl,
         price: price,
         description: description
       },
       validationErrors: validationErrorsArray
     });
   }
+
+  const imageUrl = "/" + image.path;
 
   const product = new Product({
     title: title,
@@ -58,7 +83,9 @@ exports.postAddProduct = (req, res, next) => {
       res.redirect("/admin/products");
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 };
 
@@ -78,18 +105,27 @@ exports.getEditProduct = (req, res, next) => {
         path: "/admin/edit-product",
         editing: editMode,
         errorMessage: "",
-        oldInput: product,
+        oldInput: {
+          title: product.title,
+          price: product.price,
+          description: product.description,
+          _id: prodId
+        },
         validationErrors: []
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
+  const updatedImage = req.file;
   const updatedDesc = req.body.description;
   const validationErrors = validationResult(req);
   const validationErrorsArray = validationResult(req).array();
@@ -123,13 +159,22 @@ exports.postEditProduct = (req, res, next) => {
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDesc;
-      product.imageUrl = updatedImageUrl;
+      if (updatedImage) {
+        originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
+        fileHelper.deleteFile(originalImageFilePath);
+        // Only update image path in database if we receive new file image
+        product.imageUrl = "/" + updatedImage.path;
+      }
       return product.save().then(result => {
         console.log("UPDATED PRODUCT!");
         res.redirect("/admin/products");
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getProducts = (req, res, next) => {
@@ -144,15 +189,41 @@ exports.getProducts = (req, res, next) => {
         path: "/admin/products"
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteOne({ _id: prodId, userId: req.user._id }) // Authorization: Only allow deletion from user that creates the product
+  Product.findOne({
+    _id: prodId,
+    userId: req.user._id
+  }) // Authorization: Only allow deletion from user that creates the product
+    .then(product => {
+      if (!product) {
+        return next(new Error("Product not found / User not authorized"));
+      }
+
+      // Delete the image of the product from file system
+      originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
+      fileHelper.deleteFile(originalImageFilePath);
+
+      // Delete the product from database
+      return Product.deleteOne({
+        _id: prodId,
+        userId: req.user._id
+      });
+    })
     .then(() => {
       console.log("DESTROYED PRODUCT");
       res.redirect("/admin/products");
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
