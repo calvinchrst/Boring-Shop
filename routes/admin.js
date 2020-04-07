@@ -1,4 +1,5 @@
 const express = require("express");
+const { body } = require("express-validator/check");
 
 const adminController = require("../controllers/admin");
 const isAuth = require("../middleware/is-auth");
@@ -12,11 +13,39 @@ router.get("/add-product", isAuth, adminController.getAddProduct);
 router.get("/products", isAuth, adminController.getProducts);
 
 // /admin/add-product => POST
-router.post("/add-product", isAuth, adminController.postAddProduct);
+router.post(
+  "/add-product",
+  isAuth,
+  [
+    body("title", "Please input Title with at least 3 characters")
+      .trim()
+      .isLength({ min: 3 }),
+    body("imageUrl", "Please input a valid Image URL").isURL(),
+    body("price", "Please input a valid Price").isFloat(),
+    body("description", "Please input Description with at least 5 characters")
+      .trim()
+      .isLength({ min: 5, max: 400 })
+  ],
+  adminController.postAddProduct
+);
 
 router.get("/edit-product/:productId", isAuth, adminController.getEditProduct);
 
-router.post("/edit-product", isAuth, adminController.postEditProduct);
+router.post(
+  "/edit-product",
+  isAuth,
+  [
+    body("title", "Please input Title with at least 3 characters")
+      .trim()
+      .isLength({ min: 3 }),
+    body("imageUrl", "Please input a valid Image URL").isURL(),
+    body("price", "Please input a valid Price").isFloat(),
+    body("description", "Please input Description between 5 - 400 characters")
+      .trim()
+      .isLength({ min: 5, max: 400 })
+  ],
+  adminController.postEditProduct
+);
 
 router.post("/delete-product", isAuth, adminController.postDeleteProduct);
 
