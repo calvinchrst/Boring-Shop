@@ -7,10 +7,14 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const csurf = require("csurf");
+const csrfProtection = csurf();
 const flash = require("connect-flash");
 const multer = require("multer");
 
+const isAuth = require("./middleware/is-auth");
+
 const errorController = require("./controllers/error");
+const shopController = require("./controllers/shop");
 const User = require("./models/user");
 
 // Set up config file which stores sensitive information
@@ -29,8 +33,6 @@ const store = new MongoDBStore({
   uri: MONGODB_URI,
   collection: "sesssions"
 });
-// Initialize CSRF protection
-const csrfProtection = csurf();
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -75,13 +77,11 @@ app.use(
     store: store
   })
 );
-app.use(csrfProtection);
 app.use(flash());
 
 // Set local variables
 app.use((req, res, next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;
-  res.locals.csrfToken = req.csrfToken();
   next();
 });
 
@@ -102,6 +102,16 @@ app.use((req, res, next) => {
     .catch(err => {
       next(new Error(err));
     });
+});
+
+// This route is on not on route folder because it needs to skip csrf check
+app.post("/create-order", isAuth, shopController.postOrder);
+
+// Initialize CSRF protection
+app.use(csrfProtection);
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
 });
 
 app.use("/admin", adminRoutes);
