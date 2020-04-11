@@ -17,21 +17,12 @@ const errorController = require("./controllers/error");
 const shopController = require("./controllers/shop");
 const User = require("./models/user");
 
-// Set up config file which stores sensitive information
-const configPath = "./db_config.json";
-const config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
-
-const MONGODB_URI =
-  config.databaseUrlPrefix +
-  config.username +
-  ":" +
-  config.password +
-  config.databaseUrlPostfix;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const app = express();
 const store = new MongoDBStore({
   uri: MONGODB_URI,
-  collection: "sesssions"
+  collection: "sesssions",
 });
 
 const fileStorage = multer.diskStorage({
@@ -40,7 +31,7 @@ const fileStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, Date.now().toString() + "-" + file.originalname);
-  }
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -71,10 +62,10 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(
   session({
-    secret: config.session_secret,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: store
+    store: store,
   })
 );
 app.use(flash());
@@ -91,7 +82,7 @@ app.use((req, res, next) => {
     return next();
   }
   User.findById(req.session.user._id)
-    .then(user => {
+    .then((user) => {
       if (!user) {
         return next();
       }
@@ -99,7 +90,7 @@ app.use((req, res, next) => {
       req.user = user;
       next();
     })
-    .catch(err => {
+    .catch((err) => {
       next(new Error(err));
     });
 });
@@ -127,17 +118,17 @@ app.use((error, req, res, next) => {
   res.status(500).render("500", {
     pageTitle: "Error!",
     path: "/500",
-    isAuthenticated: false // DEBUG TEMPORARY
+    isAuthenticated: false, // DEBUG TEMPORARY
   });
 });
 
 // Setup connection to mongoDB
 mongoose
   .connect(MONGODB_URI)
-  .then(result => {
-    app.listen(3000);
+  .then((result) => {
+    app.listen(process.env.PORT || 3000);
     console.log("Server startup Done");
   })
-  .catch(err => {
+  .catch((err) => {
     console.log(err);
   });

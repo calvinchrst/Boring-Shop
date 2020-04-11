@@ -12,8 +12,8 @@ const BCRYPT_NR_HASH = 12;
 const transporter = nodemailer.createTransport(
   sendgridTransport({
     auth: {
-      api_key: "***REMOVED***"
-    }
+      api_key: process.env.SEND_GRID_API_KEY,
+    },
   })
 );
 
@@ -31,9 +31,9 @@ exports.getLogin = (req, res, next) => {
     errorMessage: message,
     oldInput: {
       email: "",
-      password: ""
+      password: "",
     },
-    validationErrors: []
+    validationErrors: [],
   });
 };
 
@@ -51,9 +51,9 @@ exports.getSignup = (req, res, next) => {
     oldInput: {
       email: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
     },
-    validationErrors: []
+    validationErrors: [],
   });
 };
 
@@ -71,15 +71,15 @@ exports.postLogin = (req, res, next) => {
       errorMessage: validationErrorsArray[0].msg,
       oldInput: {
         email: email,
-        password: password
+        password: password,
       },
-      validationErrors: validationErrorsArray
+      validationErrors: validationErrorsArray,
     });
   }
 
   // Get user of with the inputted email
   User.findOne({ email: email })
-    .then(user => {
+    .then((user) => {
       if (!user) {
         return res.status(422).render("auth/login", {
           path: "/login",
@@ -87,18 +87,18 @@ exports.postLogin = (req, res, next) => {
           errorMessage: "Invalid email or password",
           oldInput: {
             email: email,
-            password: password
+            password: password,
           },
-          validationErrors: []
+          validationErrors: [],
         });
       }
 
       // Else if user is found (i.e., email is found in the database):
-      bcrypt.compare(password, user.password).then(isMatch => {
+      bcrypt.compare(password, user.password).then((isMatch) => {
         if (isMatch) {
           req.session.isLoggedIn = true;
           req.session.user = user;
-          return req.session.save(err => {
+          return req.session.save((err) => {
             // Explicityly call save so that the redirect is fired after the session is updated on database
             res.redirect("/");
           });
@@ -111,21 +111,21 @@ exports.postLogin = (req, res, next) => {
           errorMessage: "Invalid email or password",
           oldInput: {
             email: email,
-            password: password
+            password: password,
           },
-          validationErrors: []
+          validationErrors: [],
         });
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
     });
 
   User.findById("5e82997f99ae9937c860beaf")
-    .then(user => {})
-    .catch(err => {
+    .then((user) => {})
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -146,32 +146,32 @@ exports.postSignup = (req, res, next) => {
       oldInput: {
         email: email,
         password: password,
-        confirmPassword: req.body.confirmPassword
+        confirmPassword: req.body.confirmPassword,
       },
-      validationErrors: validationErrorsArray
+      validationErrors: validationErrorsArray,
     });
   }
 
   bcrypt
     .hash(password, BCRYPT_NR_HASH) // Generate hash password
-    .then(hashedPassword => {
+    .then((hashedPassword) => {
       const user = new User({
         email: email,
         password: hashedPassword,
-        cart: { items: [] }
+        cart: { items: [] },
       });
       return user.save();
     })
-    .then(result => {
+    .then((result) => {
       res.redirect("/login");
       return transporter.sendMail({
         to: email,
         from: "calvin@simple-marketplace.com",
         subject: "Signup Successful",
-        html: "<h1>You successfully signed up!</h1>"
+        html: "<h1>You successfully signed up!</h1>",
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -179,7 +179,7 @@ exports.postSignup = (req, res, next) => {
 };
 
 exports.postLogout = (req, res, next) => {
-  req.session.destroy(err => {
+  req.session.destroy((err) => {
     console.log(err);
     res.redirect("/");
   });
@@ -195,7 +195,7 @@ exports.getReset = (req, res, next) => {
   res.render("auth/reset", {
     pageTitle: "Reset Password",
     path: "/reset",
-    errorMessage: message
+    errorMessage: message,
   });
 };
 
@@ -210,10 +210,10 @@ exports.postReset = (req, res, next) => {
     console.log("Token", token);
 
     User.findOne({ email: req.body.email })
-      .then(user => {
+      .then((user) => {
         if (!user) {
           req.flash("error", "No account with that email found");
-          req.session.save(err => {
+          req.session.save((err) => {
             // Explicityly call save so that the redirect is fired after the session is updated on database
             return res.redirect("/reset");
           });
@@ -222,7 +222,7 @@ exports.postReset = (req, res, next) => {
         user.resetTokenExpiration = Date.now() + 3600000;
         return user.save();
       })
-      .then(result => {
+      .then((result) => {
         res.redirect("/login");
         return transporter.sendMail({
           to: req.body.email,
@@ -231,10 +231,10 @@ exports.postReset = (req, res, next) => {
           html: `
           <p> You requested password reset </p>
           <p> Click this <a href="http://localhost:3000/reset/${token}">link</a> to set a new password.</p>
-        `
+        `,
         });
       })
-      .catch(err => {
+      .catch((err) => {
         const error = new Error(err);
         error.httpStatusCode = 500;
         return next(error);
@@ -246,13 +246,13 @@ exports.getNewPassword = (req, res, next) => {
   // Check if reset password token is valid
   const token = req.params.token;
   User.findOne({ resetToken: token, resetTokenExpiration: { $gt: Date.now() } })
-    .then(user => {
+    .then((user) => {
       if (!user) {
         req.flash(
           "error",
           "Invalid / Expired Reset Link. Please request another reset password email"
         );
-        return req.session.save(err => {
+        return req.session.save((err) => {
           // Explicityly call save so that the redirect is fired after the session is updated on database
           return res.redirect("/reset");
         });
@@ -270,10 +270,10 @@ exports.getNewPassword = (req, res, next) => {
         path: "/new-password",
         errorMessage: message,
         userId: user._id.toString(),
-        resetToken: token
+        resetToken: token,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -289,15 +289,15 @@ exports.postNewPassword = (req, res, next) => {
   User.findOne({
     resetToken: resetToken,
     resetTokenExpiration: { $gt: Date.now() },
-    _id: userId
+    _id: userId,
   })
-    .then(user => {
+    .then((user) => {
       if (!user) {
         req.flash(
           "error",
           "Invalid / Expired Reset Link. Please request another reset password email"
         );
-        return req.session.save(err => {
+        return req.session.save((err) => {
           // Explicityly call save so that the redirect is fired after the session is updated on database
           return res.redirect("/reset");
         });
@@ -306,14 +306,14 @@ exports.postNewPassword = (req, res, next) => {
       // else if user is found
       bcrypt
         .hash(newPassword, 12) // Generate hash password
-        .then(hashedPassword => {
+        .then((hashedPassword) => {
           user.password = hashedPassword;
-          user.save().then(result => {
+          user.save().then((result) => {
             res.redirect("/login");
           });
         });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
