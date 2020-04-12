@@ -8,25 +8,21 @@ const Order = require("../models/order");
 
 const NR_PROD_PER_PAGE = 3;
 
-// Set up config file which stores sensitive information
-const configPath = "./db_config.json";
-const config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
-
 // Initialize Stripe
-const stripe = require("stripe")(config.stripe_secret_key);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 exports.getProducts = (req, res, next) => {
   const page = +req.query.page || 1;
   let totalItems;
   Product.find()
     .countDocuments()
-    .then(numProducts => {
+    .then((numProducts) => {
       totalItems = numProducts;
       return Product.find()
         .skip((page - 1) * NR_PROD_PER_PAGE)
         .limit(NR_PROD_PER_PAGE);
     })
-    .then(products => {
+    .then((products) => {
       res.render("shop/product-list", {
         prods: products,
         pageTitle: "All Products",
@@ -36,10 +32,10 @@ exports.getProducts = (req, res, next) => {
         hasPreviousPage: page > 1,
         nextPage: page + 1,
         previousPage: page - 1,
-        lastPage: Math.ceil(totalItems / NR_PROD_PER_PAGE)
+        lastPage: Math.ceil(totalItems / NR_PROD_PER_PAGE),
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -49,14 +45,14 @@ exports.getProducts = (req, res, next) => {
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
   Product.findById(prodId)
-    .then(product => {
+    .then((product) => {
       res.render("shop/product-detail", {
         product: product,
         pageTitle: product.title,
-        path: "/products"
+        path: "/products",
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -68,13 +64,13 @@ exports.getIndex = (req, res, next) => {
   let totalItems;
   Product.find()
     .countDocuments()
-    .then(numProducts => {
+    .then((numProducts) => {
       totalItems = numProducts;
       return Product.find()
         .skip((page - 1) * NR_PROD_PER_PAGE)
         .limit(NR_PROD_PER_PAGE);
     })
-    .then(products => {
+    .then((products) => {
       res.render("shop/index", {
         prods: products,
         pageTitle: "Shop",
@@ -84,10 +80,10 @@ exports.getIndex = (req, res, next) => {
         hasPreviousPage: page > 1,
         nextPage: page + 1,
         previousPage: page - 1,
-        lastPage: Math.ceil(totalItems / NR_PROD_PER_PAGE)
+        lastPage: Math.ceil(totalItems / NR_PROD_PER_PAGE),
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -98,15 +94,15 @@ exports.getCart = (req, res, next) => {
   req.user
     .populate("cart.items.productId")
     .execPopulate()
-    .then(user => {
+    .then((user) => {
       const products = user.cart.items;
       res.render("shop/cart", {
         path: "/cart",
         pageTitle: "Your Cart",
-        products: products
+        products: products,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -116,10 +112,10 @@ exports.getCart = (req, res, next) => {
 exports.postCart = (req, res, next) => {
   const prodId = req.body.productId;
   Product.findById(prodId)
-    .then(product => {
+    .then((product) => {
       return req.user.addToCart(product);
     })
-    .then(result => {
+    .then((result) => {
       console.log(result);
       res.redirect("/cart");
     });
@@ -129,10 +125,10 @@ exports.postCartDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
   req.user
     .removeFromCart(prodId)
-    .then(result => {
+    .then((result) => {
       res.redirect("/cart");
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -149,38 +145,38 @@ exports.postOrder = (req, res, next) => {
   req.user
     .populate("cart.items.productId")
     .execPopulate()
-    .then(user => {
-      const products = user.cart.items.map(i => {
+    .then((user) => {
+      const products = user.cart.items.map((i) => {
         return {
           quantity: i.quantity,
           product: {
-            ...i.productId._doc
-          }
+            ...i.productId._doc,
+          },
         };
       });
 
       // Calculate Total Price
-      user.cart.items.forEach(p => {
+      user.cart.items.forEach((p) => {
         totalPrice += p.quantity * p.productId.price;
       });
 
       // Save Order
       order = new Order({
         user: {
-          userId: user
+          userId: user,
         },
-        products: products
+        products: products,
       });
       return order.save();
     })
-    .then(result => {
+    .then((result) => {
       // Send payment to Stripe
       const charge = stripe.charges.create({
         amount: totalPrice * 100,
         currency: "usd",
         description: "Demo Order",
         source: token,
-        metadata: { order_id: result._id.toString() }
+        metadata: { order_id: result._id.toString() },
       });
 
       // Clear Cart
@@ -189,7 +185,7 @@ exports.postOrder = (req, res, next) => {
     .then(() => {
       res.redirect("/orders");
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -198,14 +194,14 @@ exports.postOrder = (req, res, next) => {
 
 exports.getOrders = (req, res, next) => {
   Order.find({ "user.userId": req.user._id })
-    .then(orders => {
+    .then((orders) => {
       res.render("shop/orders", {
         path: "/orders",
         pageTitle: "Your Orders",
-        orders: orders
+        orders: orders,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -217,7 +213,7 @@ exports.getInvoice = (req, res, next) => {
 
   // Authorization: Check if the logged in user indeed have this orderId
   Order.findOne({ _id: orderId, "user.userId": req.user._id })
-    .then(order => {
+    .then((order) => {
       // If order is null, just redirect back to orders page
       if (!order) {
         return next(new Error("No order found / Unauthorized"));
@@ -240,7 +236,7 @@ exports.getInvoice = (req, res, next) => {
       pdfDoc.text("------------------------------------------");
       pdfDoc.fontSize(18);
       let totalPrice = 0;
-      order.products.forEach(element => {
+      order.products.forEach((element) => {
         totalPrice += element.quantity * element.product.price;
         pdfDoc.text(
           element.product.title +
@@ -256,7 +252,7 @@ exports.getInvoice = (req, res, next) => {
       pdfDoc.fontSize(14).text("Thank you for shopping with us!");
       pdfDoc.end();
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -264,14 +260,14 @@ exports.getInvoice = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
-  const stripe_public_key = config.stripe_public_key;
+  const stripe_public_key = process.env.STRIPE_PUBLIC_KEY;
   req.user
     .populate("cart.items.productId")
     .execPopulate()
-    .then(user => {
+    .then((user) => {
       const products = user.cart.items;
       let totalPrice = 0;
-      products.forEach(p => {
+      products.forEach((p) => {
         totalPrice += p.quantity * p.productId.price;
       });
       res.render("shop/checkout", {
@@ -279,10 +275,10 @@ exports.getCheckout = (req, res, next) => {
         pageTitle: "Checkout",
         products: products,
         totalPrice: totalPrice,
-        stripe_public_key: stripe_public_key
+        stripe_public_key: stripe_public_key,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);

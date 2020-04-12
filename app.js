@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+// const https = require("https");
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -10,6 +11,9 @@ const csurf = require("csurf");
 const csrfProtection = csurf();
 const flash = require("connect-flash");
 const multer = require("multer");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
 
 const isAuth = require("./middleware/is-auth");
 
@@ -17,22 +21,17 @@ const errorController = require("./controllers/error");
 const shopController = require("./controllers/shop");
 const User = require("./models/user");
 
-// Set up config file which stores sensitive information
-const configPath = "./db_config.json";
-const config = JSON.parse(fs.readFileSync(configPath, "UTF-8"));
-
-const MONGODB_URI =
-  config.databaseUrlPrefix +
-  config.username +
-  ":" +
-  config.password +
-  config.databaseUrlPostfix;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const app = express();
 const store = new MongoDBStore({
   uri: MONGODB_URI,
-  collection: "sesssions"
+  collection: "sesssions",
 });
+
+// CODE TO MANAGE SSL/TLS
+// const privateKey = fs.readFileSync("server.key");
+// const certificate = fs.readFileSync("server.cert");
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -40,7 +39,7 @@ const fileStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, Date.now().toString() + "-" + file.originalname);
-  }
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -63,6 +62,15 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, "access.log"),
+  { flags: "a" }
+);
+
+app.use(helmet());
+app.use(compression());
+app.use(morgan("combined", { stream: accessLogStream }));
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
   multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
@@ -71,10 +79,10 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(
   session({
-    secret: config.session_secret,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: store
+    store: store,
   })
 );
 app.use(flash());
@@ -91,7 +99,7 @@ app.use((req, res, next) => {
     return next();
   }
   User.findById(req.session.user._id)
-    .then(user => {
+    .then((user) => {
       if (!user) {
         return next();
       }
@@ -99,7 +107,7 @@ app.use((req, res, next) => {
       req.user = user;
       next();
     })
-    .catch(err => {
+    .catch((err) => {
       next(new Error(err));
     });
 });
@@ -127,17 +135,21 @@ app.use((error, req, res, next) => {
   res.status(500).render("500", {
     pageTitle: "Error!",
     path: "/500",
-    isAuthenticated: false // DEBUG TEMPORARY
+    isAuthenticated: false, // DEBUG TEMPORARY
   });
 });
 
 // Setup connection to mongoDB
 mongoose
   .connect(MONGODB_URI)
-  .then(result => {
-    app.listen(3000);
+  .then((result) => {
+    // CODE TO MANAGE SSL/TLS
+    // https
+    //   .createServer({ key: privateKey, cert: certificate }, app)
+    //   .listen(process.env.PORT || 3000);
+    app.listen(process.env.PORT || 3000);
     console.log("Server startup Done");
   })
-  .catch(err => {
+  .catch((err) => {
     console.log(err);
   });
