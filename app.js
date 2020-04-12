@@ -10,6 +10,7 @@ const csurf = require("csurf");
 const csrfProtection = csurf();
 const flash = require("connect-flash");
 const multer = require("multer");
+const helmet = require("helmet");
 
 const isAuth = require("./middleware/is-auth");
 
@@ -54,6 +55,7 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
+app.use(helmet());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
   multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
