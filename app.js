@@ -10,16 +10,15 @@ const MongoDBStore = require("connect-mongodb-session")(session);
 const csurf = require("csurf");
 const csrfProtection = csurf();
 const flash = require("connect-flash");
-const multer = require("multer");
 const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 
 const isAuth = require("./middleware/is-auth");
-
 const errorController = require("./controllers/error");
 const shopController = require("./controllers/shop");
 const User = require("./models/user");
+const { getAWSUpload } = require("./util/images");
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -33,28 +32,6 @@ const store = new MongoDBStore({
 // const privateKey = fs.readFileSync("server.key");
 // const certificate = fs.readFileSync("server.cert");
 
-const fileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "images");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now().toString() + "-" + file.originalname);
-  },
-});
-
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype === "image/png" ||
-    file.mimetype === "image/jpg" ||
-    file.mimetype === "image/jpeg"
-  ) {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-  fs.readFileSync;
-};
-
 app.set("view engine", "ejs");
 app.set("views", "views");
 
@@ -62,21 +39,20 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
+// Additional Middleware for security & logging
+app.use(helmet());
+app.use(compression());
 const accessLogStream = fs.createWriteStream(
   path.join(__dirname, "access.log"),
   { flags: "a" }
 );
-
-app.use(helmet());
-app.use(compression());
 app.use(morgan("combined", { stream: accessLogStream }));
 
+// Upload image to AWS S3
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(
-  multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
-);
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "images")));
+app.use(getAWSUpload().single("image"));
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
