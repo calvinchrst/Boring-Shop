@@ -4,6 +4,7 @@ const { validationResult } = require("express-validator/check");
 
 const Product = require("../models/product");
 const fileHelper = require("../util/file");
+const { getAWSUpload, clearImage } = require("../util/images");
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
@@ -66,7 +67,7 @@ exports.postAddProduct = (req, res, next) => {
     });
   }
 
-  const imageUrl = "/" + image.path;
+  const imageUrl = req.file.location;
 
   const product = new Product({
     title: title,
@@ -160,10 +161,9 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       product.description = updatedDesc;
       if (updatedImage) {
-        originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
-        fileHelper.deleteFile(originalImageFilePath);
+        clearImage(product.imageUrl);
         // Only update image path in database if we receive new file image
-        product.imageUrl = "/" + updatedImage.path;
+        product.imageUrl = updatedImage.path;
       }
       return product.save().then(result => {
         console.log("UPDATED PRODUCT!");
@@ -211,8 +211,7 @@ exports.deleteProduct = (req, res, next) => {
       }
 
       // Delete the image of the product from file system
-      originalImageFilePath = path.join(__dirname, "..", product.imageUrl);
-      fileHelper.deleteFile(originalImageFilePath);
+      clearImage(product.imageUrl);
 
       // Delete the product from database
       return Product.deleteOne({
